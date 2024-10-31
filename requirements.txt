@@ -1,0 +1,6 @@
+pandas
+requests
+jsonpatch
+implicit
+numpy
+scipy

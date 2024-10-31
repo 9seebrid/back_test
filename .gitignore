@@ -1,0 +1,10 @@
+# misc
+.env
+.env.local
+lib
+bin
+pyvenv.cfg
+node_modules
+venv
+tmdb_api.py
+year_data.py
