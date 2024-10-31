@@ -12,7 +12,7 @@ RUN npm install --only=production && npm cache clean --force
 COPY . .
 
 # 애플리케이션에서 사용하는 포트를 노출
-EXPOSE 80
+EXPOSE 8002
 
 # 애플리케이션 시작 명령어
 CMD ["npm", "start"]
