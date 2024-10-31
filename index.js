@@ -4,16 +4,22 @@ const { spawn } = require('child_process');
 const path = require('path');
 const bodyParser = require('body-parser');
 const dotenv = require('dotenv');
+const os = require('os');  // 운영체제 확인용
 const app = express();
 
 dotenv.config();
 
-const PORT = process.env.PORT || 8002; // 환경변수 PORT 사용
-const API_URL ='http://localhost:3000/' // API_URL 환경변수 사용
+const PORT = process.env.PORT || 8002;
+const API_URL = process.env.API_URL || 'http://localhost:3000';
+
+// Python 경로 설정 (운영체제에 따라 다르게 설정)
+const pythonPath = os.platform() === 'win32' 
+    ? path.join(__dirname, 'venv', 'Scripts', 'python')
+    : path.join(__dirname, 'venv', 'bin', 'python3');
 
 app.use(
   cors({
-    origin: API_URL, // 환경 변수로부터 API URL을 가져옴
+    origin: API_URL,
     credentials: true,
   })
 );
@@ -21,18 +27,19 @@ app.use(
 app.use(express.json());
 app.use(bodyParser.json());
 
-// 공통 파이썬 스크립트 실행 함수
 function runPythonScript(scriptName, args, res, inputData = null) {
   const scriptPath = path.join(__dirname, scriptName);
-  const pythonPath = path.join(__dirname, 'venv', 'bin', 'python3'); // 로컬 경로
-  const pythonProcess = spawn(pythonPath, [scriptPath, ...args]);
+
+  // Python 프로세스를 실행할 때 PYTHONIOENCODING 환경 변수를 UTF-8로 설정
+  const pythonProcess = spawn(pythonPath, [scriptPath, ...args], {
+    env: { ...process.env, PYTHONIOENCODING: 'utf-8' },
+  });
 
   let responseData = '';
 
-  // Python 스크립트로 데이터를 전달 (JSON 형식으로 전달)
   if (inputData) {
-    pythonProcess.stdin.write(JSON.stringify(inputData)); // 입력 데이터를 stdin으로 전달
-    pythonProcess.stdin.end(); // 데이터 전송 완료 후 stdin 종료
+    pythonProcess.stdin.write(JSON.stringify(inputData));
+    pythonProcess.stdin.end();
   }
 
   pythonProcess.stdout.on('data', (data) => {
@@ -79,13 +86,6 @@ app.get('/latest/:count', (req, res) => {
 app.get('/genres/:genre/:count', (req, res) => {
   const { genre, count } = req.params;
   runPythonScript('movie_genres.py', [genre, count], res);
-});
-
-// 아이템 기반 추천 엔드포인트
-app.get('/item-based/:item', (req, res) => {
-  const { item } = req.params; // item 파라미터를 가져옴
-  console.log(`Item-based recommendation for item: ${item}`); // 콘솔에 item 값을 찍음
-  runPythonScript('recommender.py', ['item-based', item], res); // Python 스크립트 호출 (명령어와 item ID 전달)
 });
 
 // 유저 기반 추천 엔드포인트
